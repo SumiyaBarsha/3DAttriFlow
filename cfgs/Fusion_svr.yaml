@@ -1,6 +1,6 @@
 batch_size: 24
 workers: 8
-nepoch: 50
+nepoch: 100
 model_name: fused_model
 load_model: ./checkpoints/svr_ckpt.pth
 start_epoch: 0
