@@ -39,7 +39,7 @@ def val():
 
     # Directory for output files
     current_time = datetime.now(tz=tz.tzlocal())
-    output_dir = os.path.join('output_files', current_time.strftime('%Y-%m-%d_%H-%M-%S'))
+    output_dir = os.path.join('output_files_pc', current_time.strftime('%Y-%m-%d_%H-%M-%S'))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)  # Create the directory if it does not exist
         
