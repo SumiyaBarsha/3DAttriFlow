@@ -1,6 +1,6 @@
 batch_size: 24
 workers: 8
-nepoch: 10
+nepoch: 50
 model_name: fused_model
 load_model: ./checkpoints/svr_ckpt.pth
 start_epoch: 0
@@ -10,7 +10,7 @@ flag: debug
 loss: cd
 manual_seed: null
 use_mean_feature: False
-step_interval_to_print: 200
+step_interval_to_print: 10
 epoch_interval_to_save: 5
 epoch_interval_to_val: 1
 varying_constant: 0.01, 0.1, 0.5, 1
@@ -60,7 +60,7 @@ random_translation: False
 anisotropic_scaling: False
 demo: False
 sample: False
-pointcloud_path: 'G:\Barsha\data\ShapeNetV1PointCloud'
-image_path: 'G:\Barsha\data\ShapeNetV1Renderings'
-cache_path: 'G:\Barsha\3DAttriFlow\cache'
-cache_path_test: 'G:\Barsha\3DAttriFlow\cache_test'
+pointcloud_path: '/kaggle/input/shapenet-sub/data/ShapeNetV1PointCloud'
+image_path: '/kaggle/input/shapenet-sub/data/ShapeNetV1Renderings'
+cache_path: '/kaggle/working/3DAttriFlow/cache'
+cache_path_test: '/kaggle/working/3DAttriFlow/cache_test'
