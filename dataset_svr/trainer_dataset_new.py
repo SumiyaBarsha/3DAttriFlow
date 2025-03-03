@@ -1,7 +1,7 @@
 import argparse
 import torch
 import munch
-import dataset_svr.dataset_shapenet as dataset_new
+import dataset_svr.dataset_new as dataset_new
 import yaml
 
 
