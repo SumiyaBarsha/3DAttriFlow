@@ -21,6 +21,7 @@ from utils.model_utils import *
 import matplotlib.pyplot as plt
 import json
 from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
 
 
 import warnings
@@ -56,7 +57,8 @@ def visualize_feature_map(feature_map, num_channels=5):
     Visualize the feature maps for the first few channels of a CNN feature tensor.
     feature_map: shape (1, C, H, W) – we take the first image's feature map.
     """
-    output_dir = args.dir_outpath
+    output_dir = os.path.join("output_files_ft_map", datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+    os.makedirs(output_dir, exist_ok=True)
 
     # Convert to numpy and transpose for visualization purposes (C, H, W) -> (H, W, C)
     feature_map = feature_map.permute(1, 2, 3, 0).contiguous().cpu().detach().numpy()
