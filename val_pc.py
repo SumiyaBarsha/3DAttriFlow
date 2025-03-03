@@ -5,6 +5,7 @@ import munch
 import torch
 import yaml
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import numpy as np
 
 import logging
@@ -15,7 +16,7 @@ from utils.model_utils import calc_cd
 import argparse
 import torch
 import logging
-import importlib
+import lib
 import random
 import munch
 import yaml
@@ -23,14 +24,25 @@ import os
 import sys
 import argparse
 from dataset_pc.dataset import MVP_CP
-import numpy as np
 from tqdm import tqdm
 from time import time
 import time as timetmp
+
+import open3d as o3d
+from dateutil import tz
+from datetime import datetime
+
 from utils.model_utils import *
 from utils.train_utils import AverageValueMeter
 
 def val():
+
+    # Directory for output files
+    current_time = datetime.now(tz=tz.tzlocal())
+    output_dir = os.path.join('output_files', current_time.strftime('%Y-%m-%d_%H-%M-%S'))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)  # Create the directory if it does not exist
+        
     # Enable the inbuilt cudnn auto-tuner to find the best algorithm to use
     torch.backends.cudnn.benchmark = True
 
@@ -70,22 +82,64 @@ def val():
             with torch.no_grad():
 
                 category, label, partial, gt = data
-                partial = partial.float().cuda()  # B, 2048, 3
-                gt = gt.float().cuda()  # B, 2048, 3
-                label = label.float().cuda()
+                partial = partial.float().cuda()  # B x 2048 x 3 (incomplete input)
+                gt = gt.float().cuda()  # B x 2048 x 3 (ground truth complete cloud)
+                label = label.float().cuda()  # B x num_classes (one-hot label vector)
 
-                _, _, cd_t, _ = net(partial, gt, label)
-
-                cd_t = cd_t.mean().item() * 1e4
+                ## Forward pass: get predicted complete point cloud from the model
+                #pred_points = net(partial, label)       # Model now returns only the points (B, N, 3)
+                ## Ensure shape is (B, N, 3) for Chamfer Distance calculation
+                #if pred_points.shape[1] == 3:  
+                #    pred_points = pred_points.transpose(2, 1).contiguous()  # transpose to (B, N, 3) if needed
+                
+                # **Use validation mode to get coarse and fine outputs**
+                result = net.module(partial, gt, label, prefix="val")  
+                coarse_points = result['out1']    # coarse output (B, N, 3)
+                final_points = result['out2']     # final output (B, N, 3)
+                cd_t = result['cd_t'].mean().item() * 1e4  # Chamfer L2 loss for this batch
 
                 test_losses.update(cd_t, partial.shape[0])
 
-                t.set_description('Test[%d/%d] Metrics = %.4f' %
+                t.set_description('Test[%d/%d] ChamferL2 = %.4f' %
                              (model_idx + 1, n_samples, cd_t))
+
+                for idx in range(coarse_points.shape[0]):
+                    # Convert to numpy
+                    coarse_np = coarse_points[idx].cpu().numpy()
+                    fine_np = final_points[idx].cpu().numpy()
+                
+                    # Create Open3D point clouds
+                    pcd_coarse = o3d.geometry.PointCloud()
+                    pcd_coarse.points = o3d.utility.Vector3dVector(coarse_np)
+                    pcd_coarse.paint_uniform_color([1.0, 0.0, 0.0])  # Red (coarse)
+                
+                    pcd_final = o3d.geometry.PointCloud()
+                    pcd_final.points = o3d.utility.Vector3dVector(fine_np)
+                    pcd_final.paint_uniform_color([0.0, 1.0, 0.0])  # Green (refined)
+                
+                    # Save PLY files (optional, can be downloaded from Kaggle)
+                    o3d.io.write_point_cloud(os.path.join(output_dir, f"output_coarse_{model_idx}_{idx}.ply"), pcd_coarse)
+                    o3d.io.write_point_cloud(os.path.join(output_dir, f"output_final_{model_idx}_{idx}.ply"), pcd_final)
+                
+                    # Convert Open3D visualization to Matplotlib-friendly format
+                    fig = plt.figure(figsize=(10, 5))
+                
+                    # First subplot - Coarse point cloud
+                    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+                    ax1.scatter(coarse_np[:, 0], coarse_np[:, 1], coarse_np[:, 2], c='red', marker='o')
+                    ax1.set_title("Coarse Point Cloud")
+                
+                    # Second subplot - Final point cloud
+                    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+                    ax2.scatter(fine_np[:, 0], fine_np[:, 1], fine_np[:, 2], c='green', marker='o')
+                    ax2.set_title("Refined Point Cloud")
+                
+                    plt.savefig(os.path.join(output_dir, f"evolution_{model_idx}_{idx}.png"))  # Save figure
+                    plt.show()  # Display in Kaggle Notebook
 
     print('============================ TEST RESULTS ============================')
 
-    print('Overall cd: ', (test_losses.avg))
+    print('Overall cd_L2 (scaled): ', (test_losses.avg))
 
 
 
