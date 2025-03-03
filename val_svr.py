@@ -26,7 +26,7 @@ warnings.filterwarnings("ignore")
 def val():
 
      # Create a directory for saving the outputs
-    output_dir = os.path.join('output_files', datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+    output_dir = os.path.join('output_files_svr', datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
