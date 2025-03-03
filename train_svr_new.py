@@ -51,6 +51,26 @@ def log_string(out_str, LOG_FOUT):
     LOG_FOUT.write(out_str+'\n')
     LOG_FOUT.flush()
 
+def visualize_feature_map(feature_map, num_channels=5):
+    """
+    Visualize the feature maps for the first few channels of a CNN feature tensor.
+    feature_map: shape (1, C, H, W) – we take the first image's feature map.
+    """
+    output_dir = args.dir_outpath
+
+    # Convert to numpy and transpose for visualization purposes (C, H, W) -> (H, W, C)
+    feature_map = feature_map.permute(1, 2, 3, 0).contiguous().cpu().detach().numpy()
+    fm = feature_map[0].cpu().detach().numpy()  # (C, H, W) for the first image
+    plt.figure(figsize=(15, 3))
+    for j in range(min(num_channels, fm.shape[0])):
+        plt.subplot(1, num_channels, j+1)
+        plt.imshow(fm[j, :, :], cmap='viridis')
+        plt.title(f"Channel {j}")
+        plt.axis('off')
+    # Save the visualization to file (since this is a script, not interactive)
+    plt.savefig(os.path.join(output_dir, f'feature_map_visualization.png'))
+    plt.show()
+
 def train():
     # Set up folders for logs and checkpoints
     exp_name, log_dir, LOG_FOUT = setFolders(args)
@@ -190,6 +210,20 @@ def train():
             writer.add_scalar('Loss/Validation', best_cd_l1, epoch)  # Log validation loss to TensorBoard  #newly added
     writer.close()  # Close TensorBoard writer #newly added
     plot_loss_curve(log_dir)  # Plot loss curve after training #newly added
+    # **Feature map visualization after training** (using final model on a sample)
+    sample_data = next(iter(dataloader_test))
+    sample_img = sample_data['image'][0:1].cuda()  # one sample (1, V, 3, H, W)
+    with torch.no_grad():
+        # Extract encoder feature map for sample image(s)
+        flat_img = sample_img.view(-1, 3, sample_img.size(-2), sample_img.size(-1))
+        enc_out = net.module.encoder(flat_img)
+        if isinstance(enc_out, tuple):
+            _, feat_map = enc_out
+        else:
+            feat_map = None
+        if feat_map is not None:
+            np.save(os.path.join(log_dir, "final_feature_map.npy"), feat_map.cpu().numpy())  # save features
+            visualize_feature_map(feat_map[0:1, ...])  # plot and save the feature maps of first sample
 
 
 def val(net, curr_epoch_num, val_loss_meters, dataloader_test, best_epoch_losses, LOG_FOUT, log_dir, best_cd_l1, best_cd_l2):
