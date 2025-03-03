@@ -212,7 +212,7 @@ def val(net, curr_epoch_num, val_loss_meters, dataloader_test, best_epoch_losses
             else:
                 best_log += fmt % (loss_type, curr_best_loss, curr_best_epoch)
 
-        log_string('%d,%.2f,%.2f,%.2f'%(curr_epoch_num, val_loss_meters['cd_raw_t'].avg*1e4, val_loss_meters['cd_t'].avg*1e4, best_epoch_losses['cd_t'][1]*1e4), LOG_FOUT)
+        log_string('%d,%.2f,%.2f,%.2f,%.2f'%(curr_epoch_num, val_loss_meters['cd_raw_t'].avg*1e4, val_loss_meters['cd_t'].avg*1e4, best_epoch_losses['cd_t'][1]*1e4, val_loss_meters['f1'].avg * 1e4), LOG_FOUT)
 
         curr_log = ''
         for loss_type, meter in val_loss_meters.items():
